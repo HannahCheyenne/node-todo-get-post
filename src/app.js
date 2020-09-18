@@ -32,8 +32,39 @@ const serializeTodo = todo => ({
 
 app
   .route('/v1/todos')
-  .get(/* Your code here */)
-  .post(/* Your code here */)
+  .get((req, res, next) => {
+    TodoService.getTodos(
+      req.app.get('db')
+    )
+      .then(todos => {
+        res.json(todos.map(serializeTodo))
+      })
+      .catch(next)
+  })
+  .post(jsonParser, (req, res, next) => {
+    const { title, completed = false } = req.body
+    const newToDo = { title, completed } 
+
+    if(!title) {
+      return res.status(400).json({
+        error: { 
+          message: `Missing 'title' in request body`
+        }
+      })
+    }
+
+    TodoService.insertTodo(
+      req.app.get('db'),
+      newToDo
+    )
+      .then(todo => {
+        res
+          .status(201)
+          .location(path.posix.join(req.originalUrl, `${todo.id}`))
+          .json(serializeTodo(todo))
+      })
+      .catch(next)
+  })
 
 app
   .route('/v1/todos/:todo_id')
